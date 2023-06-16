@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Web Wifi-CAN-Diag Tool</title>
+<script language="javascript" type="text/javascript">
+
+//var url = "ws://192.168.1.100:1337/";
+var url = "ws://127.0.0.1:8000/";
+var output;
+var button;
+var SwVerButton;
+var HwVerButton;
+var canvas;
+var context;
+var PowerOnOff;
+var Diag100OnOff;
+
+// This is called when the page finishes loading
+function init() {
+    // Assign page elements to variables
+    button 		= document.getElementById("WifiDiag");
+    SwVerButton = document.getElementById("SWVer");
+    HwVerButton = document.getElementById("HWVer");
+	
+    output = document.getElementById("output");
+    canvas = document.getElementById("led");
+	
+    // Draw circle in canvas
+    context = canvas.getContext("2d");
+    context.arc(25, 25, 15, 0, Math.PI * 2, false);
+    context.lineWidth = 3;
+    context.strokeStyle = "black";
+    context.stroke();
+    context.fillStyle = "black";
+    context.fill();
+    
+    // Connect to WebSocket server
+    wsConnect(url);
+}
+
+// Call this to connect to the WebSocket server
+function wsConnect(url) {
+    
+    // Connect to WebSocket server
+    websocket = new WebSocket(url);
+    
+    // Assign callbacks
+    websocket.onopen = function(evt) { onOpen(evt) };
+    websocket.onclose = function(evt) { onClose(evt) };
+    websocket.onmessage = function(evt) { onMessage(evt) };
+    websocket.onerror = function(evt) { onError(evt) };
+	
+   	getValue();
+
+}
+
+// Called when a WebSocket connection is established with the server
+function onOpen(evt) {
+
+    // Log connection state
+    console.log("Connected");
+    
+    // Enable button
+    button.disabled = false;
+    SwVerButton.disabled = false;
+    HwVerButton.disabled = false;
+
+   // Toggle Button in the Panel
+	var check = $("input[type='checkbox']");
+	check.click(function(evt){onToggleCheck(evt)});	
+
+    // Get the current state of the LED
+    doSend("LEDOnOff");
+}
+// Called when the WebSocket connection is closed
+function onToggleCheck(evt) {
+    // Log onToggleCheck state
+    if(PowerOnOff=="1"){
+	    console.log("Toggle on");	
+		getValue();	
+	}else{
+	   console.log("Toggle off");	
+//		$("p").toggle();
+	}
+//	var Ptext = document.getElementById("pText").value;
+//	console.log('SWITCH :'+Ptext);	
+}
+// Called when the WebSocket connection is closed
+function onClose(evt) {
+
+    // Log disconnection state
+    console.log("Disconnected");
+    
+    // Disable button
+    button.disabled = true;
+    SwVerButton.disabled = true;
+    HwVerButton.disabled = true;
+    
+    // Try to reconnect after a few seconds
+    setTimeout(function() { wsConnect(url) }, 2000);
+}
+
+// Called when a message is received from the server
+function onMessage(evt) {
+
+    var data = JSON.parse(evt.data);
+    var action = data.type;
+    var args = data.params;
+    console.log('data :'+data);
+    console.log('type :'+typeof(data));
+    console.log('action :'+action);
+    console.log('args :'+args);	
+	
+    // Update circle graphic with LED state
+    switch(action) {
+        case "led":
+			if(args=="0"){
+				console.log("LED is off");
+				context.fillStyle = "black";
+				context.fill();
+				PowerOnOff = args;
+				input_Text_Clear();
+			}else if(args=="1"){
+				console.log("LED is on");
+				context.fillStyle = "red";
+				context.fill();
+				PowerOnOff = args;
+			}
+            break;
+        case "swver":
+            console.log("SW Verion");
+			if(PowerOnOff=="1")input_Text_SW(evt);
+            break;
+        case "hwver":
+            console.log("SW Verion");
+			if(PowerOnOff=="1")input_Text_HW(evt);
+            break;
+        case "20":
+            console.log("HW Verion");
+			input_Text_HW();
+            break;
+			
+        default:
+            break;
+    }
+}
+
+// Called when a WebSocket error occurs
+function onError(evt) {
+    console.log("ERROR: " + evt.data);
+}
+
+// Sends a message to the server (and prints it to the console)
+function doSend(message) {
+    console.log("Sending: " + message);
+    websocket.send(message);
+}
+
+// Called whenever the HTML button is pressed
+function onPressOnOff() {
+    doSend("LEDOnOff");
+}
+
+// Called whenever the HTML button is pressed
+function DiagOnOff() {
+    doSend("DiagnositicOnOff");
+}
+// Called whenever the HTML button is pressed
+function onPressSW() {
+    doSend("SwVersion");
+}
+function input_Text_SW(evt){
+    var data = JSON.parse(evt.data);
+    var action = data.type;
+    var ver = data.params;
+
+    document.getElementById("SWVerInput").value = ver;
+//    document.getElementById("SW1").value = "1000";
+}
+function onPressHW() {
+    doSend("HwVersion");
+}
+function input_Text_HW(evt){
+    var data = JSON.parse(evt.data);
+    var action = data.type;
+    var ver = data.params;
+
+    document.getElementById("HWVerInput").value = ver;
+}
+function input_Text_Clear(){
+    document.getElementById("HWVerInput").value = '';
+    document.getElementById("SWVerInput").value = '';
+}
+
+function getValue() {
+   var isChecked = document.getElementById("Diag100CheckBox").checked;
+	 Diag100OnOff = isChecked;
+    
+   if(isChecked){
+     console.log("Input is checked :"+Diag100OnOff);
+   } else {
+     console.log("Input is NOT checked :"+Diag100OnOff);
+   }
+}
+// Call the init function as soon as the page loads
+window.addEventListener("load", init, false);
+
+</script>
+
+<head>
+<title>Wifi Diag Tool</title>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js"></script>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+<link rel="stylesheet" type="text/css" href="wifidiag.css">
+<link rel="Shortcut Icon" type="image/ico" href="favicon.ico">
+</head>
+  <body>
+  <ul>
+   <li><a class="pull-left" href="#">Wifi Diag</a></li>
+   <li><a class="pull-left active" href="/index.html">Control</a></li>
+   <li><a class="pull-left" href="./Diag.html">Diag</a></li>
+   <li><a class="pull-left" href="./config.html">Config</a></li>
+   <li><a class="pull-left" href="./about.html">About</a></li>
+  </ul>
+  </body>  
+ <br>
+ <br>
+ <br>
+
+<h2>* Wifi CAN Diagnositic Panel *</h2>
+
+<table>
+    <tr>
+		<td><label for="HA"><big>Project :</big></label>
+			<select class="select" onChange="handleproject(this)" id="projectype">
+			<option value="0" selected>SBW</option>
+			<option value="1">WPC</option>
+			<option value="2">CPD</option> 
+			</select>&nbsp;&nbsp;</td>
+		<td><label for="HA"><big>CAR Type :</big></label>
+			<select class="select" onChange="handlecartype(this)" id="cartype">
+			<option value="0" selected>JX1</option>
+			<option value="1">RG3</option>
+			<option value="3">MQ4</option>
+			<option value="4">NE EV</option>
+			<option value="5">DL3</option>
+			</select>&nbsp;&nbsp;</td>
+		<td><button id="WifiDiag" onclick="onPressOnOff()" disabled>D-OnOff</button></td>
+		<td><canvas id="led" width="50" height="50"></canvas></td>
+    </tr>
+</table>
+<table>
+    <tr>
+		<td><input  type="text" id="SWVerInput" name="SWVerid" value="">&nbsp;&nbsp;&nbsp;&nbsp;</td>
+		<td><button id="SWVer" onclick="onPressSW()" disabled>SW Version</button></td>
+    </tr>
+</table>
+<table>
+    <tr>
+		<td><input  type="text" id="HWVerInput" name="HWVerid" value="">&nbsp;&nbsp;&nbsp;&nbsp; </td>
+		<td><button id="HWVer" onclick="onPressHW()" disabled>HW Version</button></td>
+    </tr>
+</table>
+ <br>
+
+ <h1> Input Variable(0x0100)
+	<input  type="checkbox" name="Diag100" id="Diag100CheckBox" checked />
+	<span class="checkboxtext"> </span>
+ </h1>
+
+<form action="/wifidiag-handling-form-page" method="post">
+    <div>
+        <label for="name">Park SW1 Voltage: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <input type="input" id="SW1" value=""/>
+    </div>
+    <div>
+        <label for="name">Park SW2 Voltage: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <input type="input" id="SW2" value=""/>
+    </div>
+    <div>
+        <label for="name">Park SW3 Voltage: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <input type="input" id="SW3" />
+    </div>
+    <div>
+        <label for="name">AutoHold SW1 Voltage: &nbsp;&nbsp;</label>
+        <input type="input" id="ASW1" />
+    </div>
+    <div>
+        <label for="name">AutoHold SW1 Voltage: &nbsp;&nbsp;</label>
+        <input type="input" id="ASW2" />
+    </div>
+    <div>
+        <label for="name">Doop Open Voltage: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <input type="input" id="DOV" />
+    </div>
+    <div>
+        <label for="name">Brake Voltage: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <input type="input" id="BV" />
+    </div>
+    <div>
+        <label for="name">TM Park SW Voltage: &nbsp;&nbsp;</label>
+        <input type="input" id="TMPV" />
+    </div>
+    <div>
+        <label for="name">TM Not Park SW Volt: &nbsp;&nbsp;</label>
+        <input type="input" id="TMNPV" />
+    </div>
+    <div>
+        <label for="name">PRA Sensor1 Voltage: &nbsp;&nbsp;</label>
+        <input type="input" id="PRAV1" />
+    </div>
+    <div>
+        <label for="name">PRA Sensor2 Voltage: &nbsp;&nbsp;</label>
+        <input type="input" id="PRAV2" />
+    </div>
+    <div>
+        <label for="name">PRA Motor Sensor Volt: &nbsp;&nbsp;</label>
+        <input type="input" id="PRAMSV1" />
+    </div>
+    <div>
+        <label for="name">PRA MS Sensor Volt: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <input type="input" id="PRAMSV2" />
+    </div>
+    <div>
+        <label for="name">P LED Mornitoring: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <input type="input" id="PLED_M" />
+    </div>
+    <div>
+        <label for="name">R LED Mornitoring: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <input type="input" id="RLED_M" />
+    </div>
+    <div>
+        <label for="name">N LED Mornitoring: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <input type="input" id="NLED_M" />
+    </div>
+    <div>
+        <label for="name">D LED Mornitoring: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <input type="input" id="DLED_M" />
+    </div>
+    <div>
+        <label for="name">LVR Pos SNS1: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <input type="input" id="LVR_S1" />
+    </div>
+    <div>
+        <label for="name">LVR Pos SNS2: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <input type="input" id="LVR_S2" />
+    </div>
+    <div>
+        <label for="name">Prel SW1 Volt: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <input type="input" id="pRel_S1" />
+    </div>
+    <div>
+        <label for="name">Prel SW2 Volt: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
+        <input type="input" id="pRel_S2" />
+    </div>
+	
+</form>
+
+<div id="output"></div>
+      

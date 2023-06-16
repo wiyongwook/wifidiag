@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>Wifi Diag Tool</title>
+  <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+  <link rel="stylesheet" type="text/css" href="wifidiag.css">
+  <link rel="Shortcut Icon" type="image/ico" href="favicon.ico">
+ </head>
+ <body>
+  <ul>
+   <li><a class="pull-left" href="#">Wifi Diag</a></li>
+   <li><a class="pull-left active" href="/index.html">Control</a></li>
+   <li><a class="pull-left" href="./config.html">Config</a></li>
+   <li><a class="pull-left" href="./mp3play.html">MP3 player</a></li>
+   <li><a class="pull-left" href="./about.html">About</a></li>
+  </ul>
+  <br><br><br>
+  <left>
+   <h1>** Wifi Diag Tool **</h1>
+   <table style="width:500px">
+    <tr>
+     <td><left>
+      <label for="HA"><big>Project :</big></label>
+      <select class="select" onChange="handletone(this)" id="toneha">
+       <option value="0" selected>SBW</option>
+       <option value="1">WPC</option>
+       <option value="2">Door Charger</option>
+      </select>
+      <label for="HA"><big> Diag On/Off </big></label>
+      <br><br>
+     </td>
+     <td><left>
+     </left></td>
+     <br><br>
+   </table>
+   <br>
+   <input type="text" size="30" id="station" placeholder="Enter a station/file here....">
+   <button class="button" onclick="setstat()">SW</button>
+   <br>
+   <br>
+   <input type="text" width="600px" size="72" id="resultstr" placeholder="Waiting for a command...."><br>
+   <br><br>
+   <p>Find new radio stations at <a target="blank" href="http://www.internet-radio.com">http://www.internet-radio.com</a></p>
+   <p>Examples: us1.internet-radio.com:8105, skonto.ls.lv:8002/mp3, 85.17.121.103:8800</p><br>
+  </center>
+  <script>
+   function httpGet ( theReq )
+   {
+    var theUrl = "/?" + theReq + "&version=" + Math.random() ;
+    var xhr = new XMLHttpRequest() ;
+    xhr.onreadystatechange = function() {
+      if ( xhr.readyState == XMLHttpRequest.DONE )
+      {
+        resultstr.value = xhr.responseText ;
+      }
+    }
+    xhr.open ( "GET", theUrl ) ;
+    xhr.send() ;
+   }
+
+   function handlepreset ( presctrl )
+   {
+     httpGet ( "preset=" + presctrl.value ) ;
+   }
+
+   function handletone ( tonectrl )
+   {
+     var theUrl = "/?" + tonectrl.id + "=" + tonectrl.value +
+                  "&version=" + Math.random() ;
+     var xhr = new XMLHttpRequest() ;
+     xhr.onreadystatechange = function() {
+       if ( xhr.readyState == XMLHttpRequest.DONE )
+       {
+         resultstr.value = xhr.responseText ;
+       }
+     }
+     xhr.open ( "GET", theUrl, false ) ;
+     xhr.send() ;
+   }
+
+   function setstat()
+   {
+     var theUrl = "/?station=" + station.value + "&version=" + Math.random() ;
+     var xhr = new XMLHttpRequest() ;
+     xhr.onreadystatechange = function() {
+       if ( xhr.readyState == XMLHttpRequest.DONE )
+       {
+         resultstr.value = xhr.responseText ;
+       }
+     }
+     xhr.open ( "GET", theUrl, false ) ;
+     xhr.send() ;
+   }
+
+   function selectItemByValue(elmnt, value)
+   {
+     var sel = document.getElementById(elmnt) ;
+     for(var i=0; i < sel.options.length; i++)
+     {
+       if(sel.options[i].value == value)
+         sel.selectedIndex = i;
+     }
+   }
+   
+   // Fill preset list initially
+   //
+   var i, sel, opt, lines, parts ;
+   var theUrl = "/?settings" + "&version=" + Math.random() ;
+   var xhr = new XMLHttpRequest() ;
+   xhr.onreadystatechange = function() {
+     if ( xhr.readyState == XMLHttpRequest.DONE )
+     {
+       lines = xhr.responseText.split ( "\n" ) ;
+       for ( i = 0 ; i < ( lines.length-1 ) ; i++ )
+       {
+         sel = document.getElementById ( "preset" ) ;
+         parts = lines[i].split ( "=" ) ;
+         if ( parts[0].indexOf ( "preset_" ) == 0 )
+         {
+           opt = document.createElement ( "OPTION" ) ;
+           opt.value = parts[0].substring ( 7 ) ;
+           opt.text = parts[1] ;
+           sel.add( opt ) ;
+         }
+         if ( ( parts[0].indexOf ( "tone" ) == 0 ) ||
+              ( parts[0] == "preset" ) )
+         {
+           selectItemByValue ( parts[0], parts[1] ) ;
+         }
+       }
+     }
+   }
+   xhr.open ( "GET", theUrl, false ) ;
+   xhr.send() ;
+  </script>
+ </body>
+</html>
+<noscript>
+  <link rel="stylesheet" href="radio.css">
+  Sorry, ESP-radio does not work without JavaScript!
+</noscript>
